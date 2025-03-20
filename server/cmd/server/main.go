@@ -12,7 +12,7 @@ func main() {
 
 	// Handler for the root route
 	router.GET("/", func(c *gin.Context) {
-		c.String(200, "URL Shortener Mock Server is running!")
+		c.String(200, "URL Shortener Mock Server is running! Now in Docker too!")
 	})
 
 	// Start the server on port 8080
