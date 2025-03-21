@@ -23,8 +23,8 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./server:/app
-      - /app/tmp  # Use anonymous volume for tmp
+      - ./server:/app:cached
+      - ./server/.air.toml:/app/.air.toml:cached
     environment:
       - GIN_MODE=debug
       - APPWRITE_ENDPOINT=${APPWRITE_ENDPOINT}

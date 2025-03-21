@@ -1,5 +1,5 @@
 # Development stage
-FROM node:22-alpine as development
+FROM node:22-alpine AS development
 
 WORKDIR /app
 
@@ -17,7 +17,7 @@ EXPOSE 5173
 CMD ["npm", "run", "dev"]
 
 # Production stage
-FROM node:22-alpine as build
+FROM node:22-alpine AS build
 
 WORKDIR /app
 
@@ -32,7 +32,7 @@ COPY client/ ./
 RUN npm run build
 
 # Serve stage
-FROM nginx:alpine as production
+FROM nginx:alpine AS production
 
 # Copy built assets from build stage
 COPY --from=build /app/dist /usr/share/nginx/html
