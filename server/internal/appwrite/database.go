@@ -8,9 +8,9 @@ import (
 	"github.com/abhisheksharm-3/shrtn/internal/config"
 	"github.com/abhisheksharm-3/shrtn/internal/model"
 
-	"github.com/appwrite/sdk-for-go/query"
 	"github.com/appwrite/sdk-for-go/databases"
 	"github.com/appwrite/sdk-for-go/id"
+	"github.com/appwrite/sdk-for-go/query"
 )
 
 // DatabaseClient encapsulates Appwrite database operations
@@ -56,11 +56,9 @@ func (c *DatabaseClient) GetURLByShortCode(ctx context.Context, shortCode string
 	documents, err := c.databases.ListDocuments(
 		c.config.AppwriteDatabase,
 		c.config.AppwriteCollection,
-		[]interface{}{
+		c.databases.WithListDocumentsQueries([]string{
 			query.Equal("shortCode", shortCode),
-		},
-		1, // Limit to 1 document
-		0, // No offset
+		}),
 	)
 	if err != nil {
 		return nil, err
@@ -95,29 +93,47 @@ func (c *DatabaseClient) UpdateURLClicks(ctx context.Context, docID string, clic
 		c.config.AppwriteDatabase,
 		c.config.AppwriteCollection,
 		docID,
-		map[string]interface{}{
+		c.databases.WithUpdateDocumentData(map[string]interface{}{
 			"clicks":    clicks + 1,
 			"updatedAt": time.Now(),
-		},
+		}),
 	)
 	return err
 }
 
 // GetAllURLs retrieves all URLs
 func (c *DatabaseClient) GetAllURLs(ctx context.Context, limit int, offset int) ([]model.URL, error) {
+	// Since WithListDocumentsLimit and WithListDocumentsOffset aren't available,
+	// we need to handle pagination differently or accept the default values
+
 	documents, err := c.databases.ListDocuments(
 		c.config.AppwriteDatabase,
 		c.config.AppwriteCollection,
-		[]interface{}{}, // Empty query array
-		limit,
-		offset,
+		c.databases.WithListDocumentsQueries([]string{}),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	urls := make([]model.URL, 0, len(documents.Documents))
-	for _, doc := range documents.Documents {
+	// Since we can't set limit and offset directly, we'll handle it manually in-memory
+	// This is not ideal for large collections but works as a workaround
+	totalDocs := documents.Documents
+	startIdx := offset
+	endIdx := offset + limit
+
+	if startIdx >= len(totalDocs) {
+		return []model.URL{}, nil
+	}
+
+	if endIdx > len(totalDocs) {
+		endIdx = len(totalDocs)
+	}
+
+	// Get the paginated subset
+	paginatedDocs := totalDocs[startIdx:endIdx]
+
+	urls := make([]model.URL, 0, len(paginatedDocs))
+	for _, doc := range paginatedDocs {
 		var data struct {
 			ShortCode   string  `json:"shortCode"`
 			OriginalURL string  `json:"originalURL"`
