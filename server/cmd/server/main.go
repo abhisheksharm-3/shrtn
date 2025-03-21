@@ -3,22 +3,18 @@ package main
 import (
 	"log"
 
-	"github.com/gin-gonic/gin"
+	"github.com/abhisheksharm-3/shrtn/internal/api"
+	"github.com/abhisheksharm-3/shrtn/internal/config"
 )
 
 func main() {
-	// Create a default Gin router
-	router := gin.Default()
-
-	// Handler for the root route
-	router.GET("/", func(c *gin.Context) {
-		c.String(200, "URL Shortener Mock Server is running! Now in Docker too! yay! yhis is a test. i will now do a full test")
-	})
-
-	// Start the server on port 8080
-	port := ":8080"
-	log.Printf("Server starting on %s", port)
-	if err := router.Run(port); err != nil {
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
+	}
+	r := api.SetupRouter(cfg)
+	log.Printf("Starting server on %s", cfg.ServerAddress)
+	if err := r.Run(cfg.ServerAddress); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
 }
