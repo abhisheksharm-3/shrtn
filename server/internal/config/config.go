@@ -25,8 +25,8 @@ func Load() (*Config, error) {
 		AppwriteEndpoint:   getEnv("APPWRITE_ENDPOINT", ""),
 		AppwriteProjectID:  getEnv("APPWRITE_PROJECT_ID", ""),
 		AppwriteAPIKey:     getEnv("APPWRITE_API_KEY", ""),
-		AppwriteCollection: getEnv("APPWRITE_COLLECTION", ""),
-		AppwriteDatabase:   getEnv("APPWRITE_DATABASE", ""),
+		AppwriteCollection: getEnv("APPWRITE_COLLECTION_ID", ""),
+		AppwriteDatabase:   getEnv("APPWRITE_DATABASE_ID", ""),
 	}, nil
 }
 
