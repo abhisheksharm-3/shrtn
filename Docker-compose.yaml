@@ -12,6 +12,8 @@ services:
     environment:
       - VITE_API_URL=http://localhost:8080  # Point to backend
       - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
+      - FAST_REFRESH=true
     depends_on:
       - backend
 

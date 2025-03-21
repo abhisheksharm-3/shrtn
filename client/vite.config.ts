@@ -20,8 +20,9 @@ export default defineConfig({
     },
     hmr: {
       clientPort: 5173,
-      host: '0.0.0.0',
       protocol: 'ws',
+      port: 5173,
+      overlay: true,
       timeout: 120000
     },
     cors: true  // Enable CORS for all origins
