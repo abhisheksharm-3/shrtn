@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -30,19 +31,13 @@ func RequestLogger() gin.HandlerFunc {
 		// Status code
 		statusCode := c.Writer.Status()
 
-		// Log request details
-		// Using Gin's logging capabilities
-		c.Set("request_time", latencyTime)
-		c.Next()
-		
-		// Log format: REQUEST | method | uri | status | latency
-		// For example: REQUEST | GET | /api/shorten | 200 | 34.3ms
-		c.Writer.Status()
-		c.String(statusCode, "REQUEST | %s | %s | %d | %v\n", 
-			reqMethod, 
-			reqURI, 
-			statusCode, 
-			latencyTime,
+		// Log to console, not to response
+		// This is the key fix - use fmt.Fprintf with gin.DefaultWriter instead of c.String
+		fmt.Fprintf(gin.DefaultWriter, "REQUEST|%s|%s|%d|%v ms\n",
+			reqMethod,
+			reqURI,
+			statusCode,
+			latencyTime.Milliseconds(),
 		)
 	}
 }

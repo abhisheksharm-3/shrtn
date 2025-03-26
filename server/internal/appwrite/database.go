@@ -32,16 +32,18 @@ func NewDatabaseClient(cfg *config.Config) *DatabaseClient {
 
 // CreateURL creates a new URL document in Appwrite
 func (c *DatabaseClient) CreateURL(ctx context.Context, url model.URL) (string, error) {
+	uniqueID := id.Unique()
 	document, err := c.databases.CreateDocument(
 		c.config.AppwriteDatabase,
 		c.config.AppwriteCollection,
-		id.Unique(),
+		uniqueID,
 		map[string]interface{}{
-			"shortCode":   url.ShortCode,
-			"originalURL": url.OriginalURL,
-			"createdAt":   url.CreatedAt,
-			"updatedAt":   url.UpdatedAt,
-			"clicks":      url.Clicks,
+			"ID":          uniqueID,
+			"ShortCode":   url.ShortCode,
+			"OriginalURL": url.OriginalURL,
+			"CreatedAt":   url.CreatedAt,
+			"UpdatedAt":   url.UpdatedAt,
+			"Clicks":      url.Clicks,
 		},
 	)
 	if err != nil {
@@ -57,7 +59,7 @@ func (c *DatabaseClient) GetURLByShortCode(ctx context.Context, shortCode string
 		c.config.AppwriteDatabase,
 		c.config.AppwriteCollection,
 		c.databases.WithListDocumentsQueries([]string{
-			query.Equal("shortCode", shortCode),
+			query.Equal("ShortCode", shortCode),
 		}),
 	)
 	if err != nil {
@@ -70,9 +72,9 @@ func (c *DatabaseClient) GetURLByShortCode(ctx context.Context, shortCode string
 
 	doc := documents.Documents[0]
 	var urlData struct {
-		ShortCode   string  `json:"shortCode"`
-		OriginalURL string  `json:"originalURL"`
-		Clicks      float64 `json:"clicks"`
+		ShortCode   string  `json:"ShortCode"`
+		OriginalURL string  `json:"OriginalURL"`
+		Clicks      float64 `json:"Clicks"`
 	}
 
 	doc.Decode(&urlData)
@@ -94,8 +96,8 @@ func (c *DatabaseClient) UpdateURLClicks(ctx context.Context, docID string, clic
 		c.config.AppwriteCollection,
 		docID,
 		c.databases.WithUpdateDocumentData(map[string]interface{}{
-			"clicks":    clicks + 1,
-			"updatedAt": time.Now(),
+			"Clicks":    clicks + 1,
+			"UpdatedAt": time.Now(),
 		}),
 	)
 	return err
@@ -135,11 +137,11 @@ func (c *DatabaseClient) GetAllURLs(ctx context.Context, limit int, offset int) 
 	urls := make([]model.URL, 0, len(paginatedDocs))
 	for _, doc := range paginatedDocs {
 		var data struct {
-			ShortCode   string  `json:"shortCode"`
-			OriginalURL string  `json:"originalURL"`
-			CreatedAt   string  `json:"createdAt"`
-			UpdatedAt   string  `json:"updatedAt"`
-			Clicks      float64 `json:"clicks"`
+			ShortCode   string  `json:"ShortCode"`
+			OriginalURL string  `json:"OriginalURL"`
+			CreatedAt   string  `json:"CreatedAt"`
+			UpdatedAt   string  `json:"UpdatedAt"`
+			Clicks      float64 `json:"Clicks"`
 		}
 
 		doc.Decode(&data)

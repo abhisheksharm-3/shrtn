@@ -11,7 +11,7 @@ import (
 func SetupRouter(cfg *config.Config) *gin.Engine {
 	r := gin.Default()
 
-	r.Use(cors.Default())
+	// Only add CORS middleware once
 	r.Use(cors.Default())
 	r.Use(RequestLogger())
 

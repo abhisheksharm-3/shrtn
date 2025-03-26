@@ -6,13 +6,13 @@ import (
 
 // URL represents a shortened URL
 type URL struct {
-	ID          string    `json:"id"`
-	ShortCode   string    `json:"shortCode"`
-	OriginalURL string    `json:"originalURL"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
-	Clicks      int       `json:"clicks"`
-	UserID      string    `json:"userId,omitempty"`
+	ID          string    `json:"ID"`
+	ShortCode   string    `json:"ShortCode"`
+	OriginalURL string    `json:"OriginalURL"`
+	CreatedAt   time.Time `json:"CreatedAt"`
+	UpdatedAt   time.Time `json:"UpdatedAt"`
+	Clicks      int       `json:"Clicks"`
+	UserID      string    `json:"UserID,omitempty"`
 }
 
 // URLInput represents the input to create a shortened URL
