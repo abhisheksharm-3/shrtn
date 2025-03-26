@@ -23,9 +23,8 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 	{
 		api.POST("/shorten", urlHandler.ShortenURL)
 		api.GET("/urls", urlHandler.GetAllURLs)
+		api.GET("/:ShortCode", urlHandler.RedirectURL)
 	}
-
-	r.GET("/:shortCode", urlHandler.RedirectURL)
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{

@@ -11,7 +11,7 @@ export default function RedirectPage() {
         async function fetchOriginalUrl() {
             try {
                 const backendUrl = import.meta.env.VITE_API_URL || '';
-                const response = await fetch(`${backendUrl}/${shortCode}`)
+                const response = await fetch(`${backendUrl}/api/${shortCode}`)
                 
                 if (!response.ok) {
                     if (response.status === 404) {

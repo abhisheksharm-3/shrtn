@@ -83,7 +83,7 @@ func (h *URLHandler) ShortenURL(c *gin.Context) {
 // RedirectURL redirects to the original URL
 func (h *URLHandler) RedirectURL(c *gin.Context) {
 	requestID := fmt.Sprintf("%p", c.Request)
-	shortCode := c.Param("shortCode")
+	shortCode := c.Param("ShortCode")
 
 	gin.DefaultWriter.Write([]byte(fmt.Sprintf("[DEBUG][%s] RedirectURL: Beginning request processing for shortCode: %s\n", requestID, shortCode)))
 
@@ -106,15 +106,15 @@ func (h *URLHandler) RedirectURL(c *gin.Context) {
 	gin.DefaultWriter.Write([]byte(fmt.Sprintf("[DEBUG][%s] Found original URL: %s for shortCode: %s\n",
 		requestID, url.OriginalURL, shortCode)))
 
-	// Record analytics (non-blocking)
-	gin.DefaultWriter.Write([]byte(fmt.Sprintf("[DEBUG][%s] Recording analytics for shortCode: %s\n", requestID, shortCode)))
-	go func() {
-		analyticsErr := h.analyticsService.RecordClick(c, url.ID, c.Request)
-		if analyticsErr != nil {
-			gin.DefaultErrorWriter.Write([]byte(fmt.Sprintf("[ERROR][%s] Failed to record analytics: %s\n",
-				requestID, analyticsErr.Error())))
-		}
-	}()
+	// // Record analytics (non-blocking)
+	// gin.DefaultWriter.Write([]byte(fmt.Sprintf("[DEBUG][%s] Recording analytics for shortCode: %s\n", requestID, shortCode)))
+	// go func() {
+	// 	analyticsErr := h.analyticsService.RecordClick(c, url.ID, c.Request)
+	// 	if analyticsErr != nil {
+	// 		gin.DefaultErrorWriter.Write([]byte(fmt.Sprintf("[ERROR][%s] Failed to record analytics: %s\n",
+	// 			requestID, analyticsErr.Error())))
+	// 	}
+	// }()
 
 	// Redirect to original URL
 	gin.DefaultWriter.Write([]byte(fmt.Sprintf("[DEBUG][%s] Redirecting to: %s\n", requestID, url.OriginalURL)))

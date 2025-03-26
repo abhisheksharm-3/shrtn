@@ -2,6 +2,7 @@ package appwrite
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -105,9 +106,6 @@ func (c *DatabaseClient) UpdateURLClicks(ctx context.Context, docID string, clic
 
 // GetAllURLs retrieves all URLs
 func (c *DatabaseClient) GetAllURLs(ctx context.Context, limit int, offset int) ([]model.URL, error) {
-	// Since WithListDocumentsLimit and WithListDocumentsOffset aren't available,
-	// we need to handle pagination differently or accept the default values
-
 	documents, err := c.databases.ListDocuments(
 		c.config.AppwriteDatabase,
 		c.config.AppwriteCollection,
@@ -117,8 +115,7 @@ func (c *DatabaseClient) GetAllURLs(ctx context.Context, limit int, offset int) 
 		return nil, err
 	}
 
-	// Since we can't set limit and offset directly, we'll handle it manually in-memory
-	// This is not ideal for large collections but works as a workaround
+	// Handle pagination manually
 	totalDocs := documents.Documents
 	startIdx := offset
 	endIdx := offset + limit
@@ -131,31 +128,57 @@ func (c *DatabaseClient) GetAllURLs(ctx context.Context, limit int, offset int) 
 		endIdx = len(totalDocs)
 	}
 
-	// Get the paginated subset
 	paginatedDocs := totalDocs[startIdx:endIdx]
 
 	urls := make([]model.URL, 0, len(paginatedDocs))
 	for _, doc := range paginatedDocs {
-		var data struct {
-			ShortCode   string  `json:"ShortCode"`
-			OriginalURL string  `json:"OriginalURL"`
-			CreatedAt   string  `json:"CreatedAt"`
-			UpdatedAt   string  `json:"UpdatedAt"`
-			Clicks      float64 `json:"Clicks"`
+		// Create a map to hold all document attributes
+		var docMap map[string]interface{}
+
+		// Convert document to JSON and then unmarshal into map
+		docBytes, err := json.Marshal(doc)
+		if err != nil {
+			fmt.Printf("Error marshaling document %s: %v\n", doc.Id, err)
+			continue
 		}
 
-		doc.Decode(&data)
+		if err := json.Unmarshal(docBytes, &docMap); err != nil {
+			fmt.Printf("Error unmarshaling document %s: %v\n", doc.Id, err)
+			continue
+		}
 
-		createdAt, _ := time.Parse(time.RFC3339, data.CreatedAt)
-		updatedAt, _ := time.Parse(time.RFC3339, data.UpdatedAt)
+		// Extract values from the map
+		shortCode, _ := docMap["ShortCode"].(string)
+		originalURL, _ := docMap["OriginalURL"].(string)
+
+		// Handle clicks with type assertion
+		var clicks int
+		if clicksVal, ok := docMap["Clicks"]; ok {
+			switch v := clicksVal.(type) {
+			case float64:
+				clicks = int(v)
+			case int:
+				clicks = v
+			}
+		}
+
+		// Parse dates
+		var createdAt, updatedAt time.Time
+		if createdAtStr, ok := docMap["CreatedAt"].(string); ok && createdAtStr != "" {
+			createdAt, _ = time.Parse(time.RFC3339, createdAtStr)
+		}
+
+		if updatedAtStr, ok := docMap["UpdatedAt"].(string); ok && updatedAtStr != "" {
+			updatedAt, _ = time.Parse(time.RFC3339, updatedAtStr)
+		}
 
 		url := model.URL{
 			ID:          doc.Id,
-			ShortCode:   data.ShortCode,
-			OriginalURL: data.OriginalURL,
+			ShortCode:   shortCode,
+			OriginalURL: originalURL,
 			CreatedAt:   createdAt,
 			UpdatedAt:   updatedAt,
-			Clicks:      int(data.Clicks),
+			Clicks:      clicks,
 		}
 		urls = append(urls, url)
 	}
