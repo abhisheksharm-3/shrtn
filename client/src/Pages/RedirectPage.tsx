@@ -8,31 +8,37 @@ export default function RedirectPage() {
     const [, setIsLoading] = useState(true)
     
     useEffect(() => {
-        async function fetchOriginalUrl() {
-            try {
-                const backendUrl = import.meta.env.VITE_API_URL || '';
-                const response = await fetch(`${backendUrl}/api/${shortCode}`)
-                
-                if (!response.ok) {
-                    if (response.status === 404) {
-                        setError('URL not found')
-                        setIsLoading(false)
-                        return
-                    }
-                    throw new Error('Failed to fetch URL')
-                }
-                
-                const data = await response.json()
-                window.location.href = data.OriginalURL
-            } catch (err) {
-                console.error('Error:', err)
-                setError('Something went wrong')
-                setIsLoading(false)
-            }
+        // Try the server-side redirect approach directly
+        if (shortCode) {
+            const backendUrl = import.meta.env.VITE_API_URL || '';
+            
+            // This uses a server-side redirect which bypasses CORS issues
+            window.location.replace(`${backendUrl}/api/${shortCode}/redirect`);
+            
+            // Set a timeout to show an error if the redirect doesn't happen
+            const timeoutId = setTimeout(() => {
+                setError("Redirect timeout - the server didn't respond");
+                setIsLoading(false);
+            }, 5000);
+            
+            // Clean up the timeout if the component unmounts
+            return () => clearTimeout(timeoutId);
+        } else {
+            setError("Invalid URL code");
+            setIsLoading(false);
         }
+    }, [shortCode]);
+
+    // Handler for manual redirect attempt - same approach that's already working
+    const tryRedirectAgain = () => {
+        if (!shortCode) return;
         
-        fetchOriginalUrl()
-    }, [shortCode])
+        setIsLoading(true);
+        setError("");
+        
+        const backendUrl = import.meta.env.VITE_API_URL || '';
+        window.location.replace(`${backendUrl}/api/${shortCode}/redirect`);
+    }
 
     return (
         <div className="flex items-center justify-center h-screen bg-gray-50">
@@ -42,14 +48,22 @@ export default function RedirectPage() {
                         <div className="mb-4 text-red-500">●</div>
                         <h1 className="mb-2 text-xl font-medium text-gray-800">{error}</h1>
                         <p className="mb-4 text-sm text-gray-600">
-                            Invalid code: <code className="px-1 bg-gray-100 rounded">{shortCode}</code>
+                            Short code: <code className="px-1 bg-gray-100 rounded">{shortCode}</code>
                         </p>
-                        <button
-                            onClick={() => navigate('/')}
-                            className="px-4 py-2 text-sm text-white bg-gray-800 rounded hover:bg-gray-700"
-                        >
-                            Back to Home
-                        </button>
+                        <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2 justify-center">
+                            <button
+                                onClick={() => navigate('/')}
+                                className="px-4 py-2 text-sm text-white bg-gray-800 rounded hover:bg-gray-700"
+                            >
+                                Back to Home
+                            </button>
+                            <button
+                                onClick={tryRedirectAgain}
+                                className="px-4 py-2 text-sm text-gray-800 bg-gray-200 rounded hover:bg-gray-300"
+                            >
+                                Try Again
+                            </button>
+                        </div>
                     </div>
                 ) : (
                     <div className="text-center">

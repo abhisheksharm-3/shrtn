@@ -8,6 +8,7 @@ import (
 )
 
 type Config struct {
+	Environment        string
 	ServerAddress      string
 	AppwriteEndpoint   string
 	AppwriteProjectID  string
@@ -21,6 +22,7 @@ func Load() (*Config, error) {
 
 	// Get environment variables with default values
 	return &Config{
+		Environment:        getEnv("ENVIRONMENT", "development"),
 		ServerAddress:      getEnv("SERVER_ADDRESS", ":8080"),
 		AppwriteEndpoint:   getEnv("APPWRITE_ENDPOINT", ""),
 		AppwriteProjectID:  getEnv("APPWRITE_PROJECT_ID", ""),
