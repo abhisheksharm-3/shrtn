@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
+import { useState } from 'react';
 import { Menu, X, Link as LinkIcon } from "lucide-react";
 
 const Navbar = () => {

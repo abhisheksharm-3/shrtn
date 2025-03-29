@@ -10,13 +10,13 @@ RUN go install github.com/air-verse/air@latest
 RUN mkdir -p tmp && chmod 777 tmp
 
 # Copy go mod files
-COPY server/go.mod server/go.sum ./
+COPY go.mod go.sum ./
 
 # Download dependencies
 RUN go mod download
 
 # Copy Air configuration
-COPY server/.air.toml ./.air.toml
+COPY .air.toml ./.air.toml
 
 # Expose the port
 EXPOSE 8080
@@ -30,13 +30,13 @@ FROM golang:1.24-alpine AS builder
 WORKDIR /app
 
 # Copy go mod files
-COPY server/go.mod server/go.sum ./
+COPY go.mod go.sum ./
 
 # Download dependencies
 RUN go mod download
 
 # Copy the source code
-COPY server/ ./
+COPY . ./
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
