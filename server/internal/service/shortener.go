@@ -87,7 +87,7 @@ func (s *URLService) GetByShortCode(ctx context.Context, shortCode string) (*mod
 // GetAll retrieves all URLs
 func (s *URLService) GetAll(ctx context.Context) ([]model.URL, error) {
 	// Query Appwrite for all documents
-	return s.dbClient.GetAllURLs(ctx, 100, 0)
+	return s.dbClient.GetAllURLs(ctx)
 }
 
 // Generate a random short code
