@@ -1,0 +1,25 @@
+# # Production values
+# client:
+#   image:
+#     repository: ghcr.io/yourusername/url-shortener-client
+#     tag: latest
+#   imagePullPolicy: IfNotPresent
+
+# server:
+#   image: 
+#     repository: ghcr.io/yourusername/url-shortener-server
+#     tag: latest
+#   imagePullPolicy: IfNotPresent
+  
+# ingress:
+#   hosts:
+#     - host: shrtn.yourdomain.com
+#       paths:
+#         - path: /
+#           pathType: Prefix
+#           service: client
+#         - path: /api
+#           pathType: Prefix
+#           service: server
+          
+# # ... other prod-specific settings ...
