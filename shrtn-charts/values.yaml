@@ -1,0 +1,76 @@
+# Global configuration
+global:
+  environment: development
+
+# Frontend configuration
+client:
+  name: shrtn-client
+  replicaCount: 1
+  image:
+    repository: shrtn-client
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 5173
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  env:
+    VITE_API_URL: http://shrtn-server
+
+# Backend configuration
+server:
+  name: shrtn-server
+  replicaCount: 1
+  image:
+    repository: shrtn-server
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 8080
+  resources:
+    limits:
+      cpu: 300m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  env:
+    GIN_MODE: release
+    APPWRITE_ENDPOINT: ""
+    APPWRITE_PROJECT_ID: ""
+    APPWRITE_API_KEY: ""
+    APPWRITE_COLLECTION_ID: ""
+    APPWRITE_DATABASE_ID: ""
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    kubernetes.io/ingress.class: nginx
+  hosts:
+    - host: shrtn.local
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: shrtn-server
+          port: 80
+        - path: /
+          pathType: Prefix
+          service: shrtn-client
+          port: 80
+
+# Secret configuration for backend
+secrets:
+  appwrite:
+    create: true
+    name: appwrite-secrets

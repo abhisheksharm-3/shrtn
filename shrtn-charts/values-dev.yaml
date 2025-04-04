@@ -1,0 +1,10 @@
+# Development values override
+frontend:
+  service:
+    type: NodePort
+    nodePort: 30173
+
+backend:
+  service:
+    type: NodePort
+    nodePort: 30080
