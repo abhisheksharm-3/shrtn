@@ -32,7 +32,7 @@ const Navbar = () => {
           {/* Right side - GitHub link */}
           <div className="hidden md:flex items-center">
             <a 
-              href="https://github.com/yourusername/shrtn" 
+              href="https://github.com/abhisheksharm-3/shrtn" 
               target="_blank" 
               rel="noopener noreferrer" 
               className="text-gray-300 hover:text-white text-sm group flex items-center"
@@ -80,7 +80,7 @@ const Navbar = () => {
               How it works
             </a>
             <a
-              href="https://github.com/yourusername/shrtn"
+              href="https://github.com/abhisheksharm-3/shrtn"
               target="_blank"
               rel="noopener noreferrer"
               className="block px-3 py-2 rounded-md text-base text-gray-300 hover:text-white hover:bg-gray-800 flex items-center"
