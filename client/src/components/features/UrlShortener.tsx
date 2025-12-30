@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ChangeEvent } from 'react';
 import { Check, Copy, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -59,7 +59,7 @@ function UrlShortener() {
                                 <Input
                                     placeholder="Enter your URL"
                                     value={longUrl}
-                                    onChange={(e) => setLongUrl(e.target.value)}
+                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setLongUrl(e.target.value)}
                                     disabled={isPending}
                                     required
                                 />
@@ -77,7 +77,7 @@ function UrlShortener() {
                                     <Input
                                         placeholder="Custom code (optional)"
                                         value={customCode}
-                                        onChange={(e) => setCustomCode(e.target.value)}
+                                        onChange={(e: ChangeEvent<HTMLInputElement>) => setCustomCode(e.target.value)}
                                         disabled={isPending}
                                     />
                                 )}
