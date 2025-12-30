@@ -1,44 +1,21 @@
-# Development stage
-FROM node:22-alpine AS development
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files and install dependencies
-COPY client/package*.json ./
-RUN npm install
+COPY package*.json ./
+RUN npm ci
 
-# Copy the rest of the code
-COPY client/ ./
+COPY . ./
 
-# Expose port for development server
-EXPOSE 5173
+ARG VITE_API_URL
+ENV VITE_API_URL=${VITE_API_URL}
 
-# Command for development with hot reload
-CMD ["npm", "run", "dev"]
-
-# Production stage
-FROM node:22-alpine AS build
-
-WORKDIR /app
-
-# Copy package files and install dependencies
-COPY client/package*.json ./
-RUN npm install
-
-# Copy the rest of the code
-COPY client/ ./
-
-# Build the application
 RUN npm run build
 
-# Serve stage
 FROM nginx:alpine AS production
 
-# Copy built assets from build stage
-COPY --from=build /app/dist /usr/share/nginx/html
-
-# Copy nginx config if you have a custom one
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 

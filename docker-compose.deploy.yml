@@ -1,0 +1,24 @@
+# Deployment docker-compose
+# Pull pre-built image from DockerHub and run
+
+services:
+  shrtn:
+    image: abhisheksharm-3/shrtn:latest
+    ports:
+      - "80:80"
+    environment:
+      # Appwrite Configuration
+      - APPWRITE_ENDPOINT=${APPWRITE_ENDPOINT:-https://cloud.appwrite.io/v1}
+      - APPWRITE_PROJECT_ID=${APPWRITE_PROJECT_ID}
+      - APPWRITE_API_KEY=${APPWRITE_API_KEY}
+      - APPWRITE_DATABASE_ID=${APPWRITE_DATABASE_ID}
+      - APPWRITE_COLLECTION_ID=${APPWRITE_COLLECTION_ID}
+      # Security
+      - API_KEY=${API_KEY}
+      - ENVIRONMENT=production
+      - SERVER_ADDRESS=:8080
+      - CORS_ORIGINS=http://localhost
+      # Rate Limiting
+      - RATE_LIMIT_PER_MINUTE=${RATE_LIMIT_PER_MINUTE:-60}
+      - RATE_LIMIT_BURST=${RATE_LIMIT_BURST:-10}
+    restart: unless-stopped

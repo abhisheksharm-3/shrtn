@@ -1,54 +1,77 @@
-# React + TypeScript + Vite
+# shrtn - Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React frontend for the URL shortener.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Framework**: React 19
+- **Build**: Vite 7
+- **Styling**: Tailwind CSS 4
+- **State**: TanStack Query
+- **Language**: TypeScript
 
-## Expanding the ESLint configuration
+## Features
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- URL shortening with custom codes
+- QR code generation with branding
+- Link preview cards (Open Graph)
+- Dark/Light/System theme
+- Responsive design
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+## Local Development
+
+```bash
+# Install dependencies
+npm install
+
+# Copy environment file
+cp .env.example .env
+
+# Run dev server
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Environment Variables
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `VITE_API_URL` | Backend API URL | Yes (dev) |
+| `VITE_API_KEY` | API key for auth | No |
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+> **Note**: In Docker, `VITE_API_URL` is empty because nginx proxies `/api/*` to the backend.
+
+## Directory Structure
+
+```
+client/
+├── src/
+│   ├── api/                # API client
+│   ├── components/
+│   │   ├── features/       # Feature components
+│   │   ├── layout/         # Layout components
+│   │   ├── providers/      # Context providers
+│   │   └── ui/             # UI primitives
+│   ├── hooks/              # Custom hooks
+│   ├── pages/              # Route pages
+│   ├── types/              # TypeScript types
+│   └── lib/                # Utilities
+├── public/
+├── Dockerfile
+├── nginx.conf
+└── .env.example
+```
+
+## Build
+
+```bash
+npm run build
+```
+
+Output is in `dist/` directory.
+
+## Docker
+
+```bash
+docker build -t shrtn-frontend .
+docker run -p 80:80 shrtn-frontend
 ```

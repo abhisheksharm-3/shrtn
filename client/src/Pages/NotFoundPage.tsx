@@ -1,18 +1,24 @@
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/Button';
+import { Card, CardContent } from '@/components/ui/Card';
 
-export default function NotFoundPage() {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
-      <h1 className="text-4xl font-bold mb-4">404 - Page Not Found</h1>
-      <p className="mb-8 text-lg">
-        The page you're looking for doesn't exist or has been moved.
-      </p>
-      <Link
-        to="/"
-        className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-      >
-        Go Home
-      </Link>
-    </div>
-  )
+function NotFoundPage() {
+    return (
+        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+            <Card className="w-full max-w-sm">
+                <CardContent className="p-6 text-center space-y-4">
+                    <div className="text-4xl font-bold">404</div>
+                    <h1 className="text-lg font-medium">Page not found</h1>
+                    <p className="text-sm text-muted-foreground">
+                        The page you're looking for doesn't exist or has been moved.
+                    </p>
+                    <Button asChild className="w-full">
+                        <Link to="/">Go home</Link>
+                    </Button>
+                </CardContent>
+            </Card>
+        </div>
+    );
 }
+
+export default NotFoundPage;

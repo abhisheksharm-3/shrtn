@@ -1,120 +1,89 @@
+// Package api provides HTTP handlers for the URL shortener.
 package api
 
 import (
-	"fmt"
-	"log"
+	"context"
 	"net/http"
-	"strings"
+	"strconv"
 
 	"github.com/abhisheksharm-3/shrtn/internal/model"
 	"github.com/abhisheksharm-3/shrtn/internal/service"
 	"github.com/gin-gonic/gin"
 )
 
-// HTTPError standardizes error responses
-type HTTPError struct {
-	Status  int    `json:"-"`
-	Code    string `json:"code,omitempty"`
-	Message string `json:"message"`
-}
-
-// URLHandler handles URL shortening requests
+// URLHandler handles URL shortening HTTP requests.
 type URLHandler struct {
 	urlService       *service.URLService
 	analyticsService *service.AnalyticsService
-	logger           *log.Logger
+	metadataService  *service.MetadataService
 }
 
-// NewURLHandler creates a new URLHandler
-func NewURLHandler(urlService *service.URLService, analyticsService *service.AnalyticsService) *URLHandler {
+// NewURLHandler creates a new URLHandler.
+func NewURLHandler(urlService *service.URLService, analyticsService *service.AnalyticsService, metadataService *service.MetadataService) *URLHandler {
 	return &URLHandler{
 		urlService:       urlService,
 		analyticsService: analyticsService,
-		logger:           log.New(gin.DefaultWriter, "[URL-Handler] ", log.LstdFlags),
+		metadataService:  metadataService,
 	}
 }
 
-// ShortenURL handles the creation of shortened URLs
-// @Summary Create a shortened URL
-// @Description Creates a new shortened URL from the original URL
-// @Accept json
-// @Produce json
-// @Param input body model.URLInput true "URL information"
-// @Success 201 {object} model.URL
-// @Failure 400 {object} HTTPError
-// @Failure 500 {object} HTTPError
-// @Router /api/shorten [post]
+// ShortenURL handles POST /api/shorten requests.
 func (h *URLHandler) ShortenURL(c *gin.Context) {
-	h.logger.Println("Processing URL shortening request")
-
 	var input model.URLInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		h.handleError(c, HTTPError{
-			Status:  http.StatusBadRequest,
-			Code:    "invalid_input",
-			Message: "Invalid input format: " + err.Error(),
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid input format",
+			"code":  "invalid_input",
 		})
 		return
 	}
 
-	// Validate URL
-	if input.OriginalURL == "" {
-		h.handleError(c, HTTPError{
-			Status:  http.StatusBadRequest,
-			Code:    "missing_url",
-			Message: "Original URL cannot be empty",
-		})
-		return
-	}
-
-	// Ensure URL has protocol
-	if !strings.HasPrefix(input.OriginalURL, "http://") && !strings.HasPrefix(input.OriginalURL, "https://") {
-		input.OriginalURL = "https://" + input.OriginalURL
-	}
-
-	// Call the service
-	url, err := h.urlService.Create(c, input)
+	url, err := h.urlService.Create(c.Request.Context(), input)
 	if err != nil {
-		h.logger.Printf("Error creating shortened URL: %v", err)
-		h.handleError(c, HTTPError{
-			Status:  http.StatusInternalServerError,
-			Code:    "creation_failed",
-			Message: "Failed to create shortened URL: " + err.Error(),
+		status := http.StatusInternalServerError
+		code := "creation_failed"
+
+		switch err {
+		case service.ErrInvalidURL:
+			status = http.StatusBadRequest
+			code = "invalid_url"
+		case service.ErrURLBlocked:
+			status = http.StatusBadRequest
+			code = "url_blocked"
+		case service.ErrShortCodeExists:
+			status = http.StatusConflict
+			code = "code_exists"
+		case service.ErrShortCodeTooShort, service.ErrShortCodeInvalid:
+			status = http.StatusBadRequest
+			code = "invalid_code"
+		}
+
+		c.JSON(status, gin.H{
+			"error": err.Error(),
+			"code":  code,
 		})
 		return
 	}
 
-	h.logger.Printf("Created shortened URL: %s for %s", url.ShortCode, url.OriginalURL)
 	c.JSON(http.StatusCreated, url)
 }
 
-// GetURLByShortCode returns a URL by its short code without redirecting
-// @Summary Get URL by short code
-// @Description Retrieves URL information by its short code
-// @Produce json
-// @Param ShortCode path string true "Short code"
-// @Success 200 {object} model.URL
-// @Failure 400 {object} HTTPError
-// @Failure 404 {object} HTTPError
-// @Failure 500 {object} HTTPError
-// @Router /api/{ShortCode} [get]
+// GetURLByShortCode handles GET /api/:shortCode requests.
 func (h *URLHandler) GetURLByShortCode(c *gin.Context) {
-	shortCode := c.Param("ShortCode")
+	shortCode := c.Param("shortCode")
 	if shortCode == "" {
-		h.handleError(c, HTTPError{
-			Status:  http.StatusBadRequest,
-			Code:    "missing_code",
-			Message: "Short code cannot be empty",
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "short code is required",
+			"code":  "missing_code",
 		})
 		return
 	}
 
-	url, err := h.urlService.GetByShortCode(c, shortCode)
+	url, err := h.urlService.GetByShortCode(c.Request.Context(), shortCode)
 	if err != nil {
-		h.handleError(c, HTTPError{
-			Status:  http.StatusNotFound,
-			Code:    "not_found",
-			Message: "URL not found",
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "URL not found",
+			"code":  "not_found",
 		})
 		return
 	}
@@ -122,99 +91,107 @@ func (h *URLHandler) GetURLByShortCode(c *gin.Context) {
 	c.JSON(http.StatusOK, url)
 }
 
-// RedirectURL redirects to the original URL
-// @Summary Redirect to original URL
-// @Description Redirects to the original URL associated with the short code
-// @Produce html
-// @Param ShortCode path string true "Short code"
-// @Success 301 {string} string "Moved Permanently"
-// @Failure 400 {object} HTTPError
-// @Failure 404 {object} HTTPError
-// @Router /{ShortCode} [get]
+// RedirectURL handles GET /:shortCode requests.
 func (h *URLHandler) RedirectURL(c *gin.Context) {
-	shortCode := c.Param("ShortCode")
-	h.logger.Printf("Processing redirect for: %s", shortCode)
-
+	shortCode := c.Param("shortCode")
 	if shortCode == "" {
-		h.handleError(c, HTTPError{
-			Status:  http.StatusBadRequest,
-			Code:    "missing_code",
-			Message: "Short code cannot be empty",
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "short code is required",
+			"code":  "missing_code",
 		})
 		return
 	}
 
-	url, err := h.urlService.GetByShortCode(c, shortCode)
+	url, err := h.urlService.GetByShortCode(c.Request.Context(), shortCode)
 	if err != nil {
-		h.logger.Printf("URL not found for code: %s, error: %v", shortCode, err)
-		h.handleError(c, HTTPError{
-			Status:  http.StatusNotFound,
-			Code:    "not_found",
-			Message: "URL not found",
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "URL not found",
+			"code":  "not_found",
 		})
 		return
 	}
 
-	// Ensure URL has protocol
-	originalURL := url.OriginalURL
-	if !strings.HasPrefix(originalURL, "http://") && !strings.HasPrefix(originalURL, "https://") {
-		originalURL = "https://" + originalURL
-	}
-
-	// Record analytics asynchronously
+	bgCtx := context.Background()
 	go func() {
-		if err := h.analyticsService.RecordClick(c.Request.Context(), url.ID, c.Request); err != nil {
-			h.logger.Printf("Failed to record analytics: %v", err)
-		}
+		_ = h.analyticsService.RecordClick(bgCtx, url.ID, c.Request)
+	}()
+	go func() {
+		_ = h.urlService.IncrementClicks(bgCtx, url.ID, url.Clicks)
 	}()
 
-	// Update click count asynchronously
-	go func() {
-		if err := h.urlService.IncrementClicks(c.Request.Context(), url.ID, url.Clicks); err != nil {
-			h.logger.Printf("Failed to update click count: %v", err)
-		}
-	}()
-
-	h.logger.Printf("Redirecting to: %s", originalURL)
-
-	// Set headers to prevent caching
 	c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
 	c.Header("Pragma", "no-cache")
 	c.Header("Expires", "0")
-
-	// 301 is permanent redirect, 302 is temporary
-	c.Redirect(http.StatusMovedPermanently, originalURL)
+	c.Redirect(http.StatusMovedPermanently, url.OriginalURL)
 }
 
-// GetAllURLs returns all shortened URLs
-// @Summary Get all URLs
-// @Description Retrieves all shortened URLs
-// @Produce json
-// @Success 200 {array} model.URL
-// @Failure 500 {object} HTTPError
-// @Router /api/urls [get]
+// GetAllURLs handles GET /api/urls requests.
 func (h *URLHandler) GetAllURLs(c *gin.Context) {
-	h.logger.Println("Retrieving all URLs")
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 
-	urls, err := h.urlService.GetAll(c)
+	response, err := h.urlService.GetAll(c.Request.Context(), limit, offset)
 	if err != nil {
-		h.logger.Printf("Error retrieving URLs: %v", err)
-		h.handleError(c, HTTPError{
-			Status:  http.StatusInternalServerError,
-			Code:    "retrieval_failed",
-			Message: fmt.Sprintf("Failed to retrieve URLs: %v", err),
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to retrieve URLs",
+			"code":  "retrieval_failed",
 		})
 		return
 	}
 
-	h.logger.Printf("Retrieved %d URLs", len(urls))
-	c.JSON(http.StatusOK, urls)
+	c.JSON(http.StatusOK, response)
 }
 
-// handleError sends a standardized error response
-func (h *URLHandler) handleError(c *gin.Context, err HTTPError) {
-	c.JSON(err.Status, gin.H{
-		"error": err.Message,
-		"code":  err.Code,
-	})
+// DeleteURL handles DELETE /api/:shortCode requests.
+func (h *URLHandler) DeleteURL(c *gin.Context) {
+	shortCode := c.Param("shortCode")
+	if shortCode == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "short code is required",
+			"code":  "missing_code",
+		})
+		return
+	}
+
+	url, err := h.urlService.GetByShortCode(c.Request.Context(), shortCode)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "URL not found",
+			"code":  "not_found",
+		})
+		return
+	}
+
+	if err := h.urlService.Delete(c.Request.Context(), url.ID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to delete URL",
+			"code":  "deletion_failed",
+		})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+// GetLinkPreview handles GET /api/preview requests.
+func (h *URLHandler) GetLinkPreview(c *gin.Context) {
+	targetURL := c.Query("url")
+	if targetURL == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "url query parameter is required",
+			"code":  "missing_url",
+		})
+		return
+	}
+
+	preview, err := h.metadataService.FetchPreview(c.Request.Context(), targetURL)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{
+			"error": "failed to fetch preview",
+			"code":  "fetch_failed",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, preview)
 }

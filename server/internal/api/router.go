@@ -1,57 +1,65 @@
+// Package api provides HTTP handlers for the URL shortener.
 package api
 
 import (
 	"time"
 
 	"github.com/abhisheksharm-3/shrtn/internal/config"
+	"github.com/abhisheksharm-3/shrtn/internal/middleware"
+	"github.com/abhisheksharm-3/shrtn/internal/repository"
 	"github.com/abhisheksharm-3/shrtn/internal/service"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
-// SetupRouter configures and returns the application router
+// SetupRouter configures and returns the application router.
 func SetupRouter(cfg *config.Config) *gin.Engine {
-	// Set Gin mode based on config
-	if cfg.Environment == "production" {
+	if cfg.IsProduction() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	r := gin.Default()
+	r := gin.New()
+	r.Use(gin.Recovery())
 
-	// Configure CORS with more specific settings
 	corsConfig := cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "https://yourdomain.com"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowOrigins:     cfg.CORSOrigins,
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-API-Key"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}
 
 	r.Use(cors.New(corsConfig))
-	r.Use(RequestLogger())
+	r.Use(middleware.Security())
+	r.Use(middleware.RateLimiter(middleware.RateLimiterConfig{
+		RequestsPerMinute: cfg.RateLimitPerMinute,
+		BurstSize:         cfg.RateLimitBurst,
+		CleanupInterval:   5 * time.Minute,
+	}))
 
-	// Initialize services
-	urlService := service.NewURLService(cfg)
-	analyticsService := service.NewAnalyticsService(cfg)
+	urlRepo := repository.NewAppwriteURLRepository(cfg)
+	analyticsRepo := repository.NewAppwriteAnalyticsRepository(cfg)
 
-	// Set up handlers
-	urlHandler := NewURLHandler(urlService, analyticsService)
+	urlService := service.NewURLService(urlRepo)
+	analyticsService := service.NewAnalyticsService(analyticsRepo, "")
+	metadataService := service.NewMetadataService()
 
-	// API routes
+	urlHandler := NewURLHandler(urlService, analyticsService, metadataService)
+
 	api := r.Group("/api")
+	api.Use(middleware.APIKeyAuth(cfg.APIKey))
 	{
 		api.POST("/shorten", urlHandler.ShortenURL)
 		api.GET("/urls", urlHandler.GetAllURLs)
-		api.GET("/:ShortCode", urlHandler.GetURLByShortCode)    // JSON endpoint
-		api.GET("/:ShortCode/redirect", urlHandler.RedirectURL) // Redirect endpoint
+		api.GET("/preview", urlHandler.GetLinkPreview)
+		api.GET("/:shortCode", urlHandler.GetURLByShortCode)
+		api.DELETE("/:shortCode", urlHandler.DeleteURL)
 	}
 
-	// Direct redirect route (short version)
-	r.GET("/:ShortCode", urlHandler.RedirectURL)
+	r.GET("/:shortCode", urlHandler.RedirectURL)
 
-	// Health check
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status": "healthy",

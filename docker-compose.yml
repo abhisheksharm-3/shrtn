@@ -1,0 +1,38 @@
+services:
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ""
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - public
+      - internal
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    env_file:
+      - ./server/.env
+    environment:
+      - ENVIRONMENT=production
+      - SERVER_ADDRESS=:8080
+      - CORS_ORIGINS=http://frontend,http://localhost
+    expose:
+      - "8080"
+    networks:
+      - internal
+    restart: unless-stopped
+
+networks:
+  public:
+    driver: bridge
+  internal:
+    driver: bridge
+    internal: true
